@@ -13,6 +13,12 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
+const GENDER_BADGES = {
+  boys: { label: 'Boys only', cls: 'bg-blue-100 text-blue-800' },
+  girls: { label: 'Girls only', cls: 'bg-pink-100 text-pink-800' },
+  mixed: { label: 'Mixed', cls: 'bg-purple-100 text-purple-800' },
+}
+
 function RoomCard({ title, available, price }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
@@ -118,10 +124,31 @@ function HouseModal({ house, campusCoords, onClose }) {
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
               {distanceKm.toFixed(1)} km from campus
             </span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                GENDER_BADGES[house.gender_policy ?? 'mixed']?.cls ??
+                'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {GENDER_BADGES[house.gender_policy ?? 'mixed']?.label ?? 'Mixed'}
+            </span>
           </div>
 
           {house.description && (
             <p className="mt-2 text-sm text-gray-600">{house.description}</p>
+          )}
+
+          {(house.amenities ?? []).length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {house.amenities.map((amenity) => (
+                <span
+                  key={amenity}
+                  className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"
+                >
+                  {amenity}
+                </span>
+              ))}
+            </div>
           )}
 
           {house.is_full ? (

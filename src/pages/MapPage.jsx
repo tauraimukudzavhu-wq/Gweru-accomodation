@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../lib/supabase.js'
+import { ROOM_TYPES } from '../lib/roomTypes.js'
 import CampusToggle from '../components/CampusToggle.jsx'
+import FilterBar from '../components/FilterBar.jsx'
+import SiteFooter from '../components/SiteFooter.jsx'
 import HouseModal from '../components/HouseModal.jsx'
 
 const GWERU_CENTER = [-19.45, 29.8167]
@@ -15,6 +18,13 @@ const CAMPUSES = [
 const PIN_AVAILABLE = '#16a34a'
 const PIN_FULL = '#dc2626'
 
+// extra words each gender policy should match when students type a search
+const GENDER_SYNONYMS = {
+  boys: 'boys only accommodation male gents',
+  girls: 'girls only accommodation female ladies',
+  mixed: 'mixed sex accommodation co-ed coed',
+}
+
 const campusIcon = (color) =>
   new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
@@ -25,11 +35,38 @@ const campusIcon = (color) =>
     shadowSize: [41, 41],
   })
 
+function matchesFilters(house, { query, gender, maxPrice }) {
+  const policy = house.gender_policy ?? 'mixed'
+  if (gender !== 'any' && policy !== gender) return false
+
+  if (maxPrice) {
+    const prices = ROOM_TYPES.map((t) => house[t.priceField] ?? 0).filter((p) => p > 0)
+    if (prices.length > 0 && !prices.some((p) => p <= Number(maxPrice))) return false
+  }
+
+  const q = query.trim().toLowerCase()
+  if (q) {
+    const hay = [
+      house.name,
+      house.description,
+      GENDER_SYNONYMS[policy] ?? policy,
+      ...(house.amenities ?? []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    if (!q.split(/\s+/).every((token) => hay.includes(token))) return false
+  }
+
+  return true
+}
+
 function MapPage() {
   const [selectedCampus, setSelectedCampus] = useState(CAMPUSES[0].id)
   const [houses, setHouses] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedHouseId, setSelectedHouseId] = useState(null)
+  const [filters, setFilters] = useState({ query: '', gender: 'any', maxPrice: '' })
 
   useEffect(() => {
     let cancelled = false
@@ -75,6 +112,11 @@ function MapPage() {
   const campus = CAMPUSES.find((c) => c.id === selectedCampus)
   const selectedHouse = houses.find((h) => h.id === selectedHouseId)
 
+  const filteredHouses = useMemo(
+    () => houses.filter((h) => matchesFilters(h, filters)),
+    [houses, filters],
+  )
+
   return (
     <div className="relative h-dvh w-full overflow-hidden">
       <MapContainer
@@ -92,7 +134,7 @@ function MapPage() {
             <Popup>{c.name}</Popup>
           </Marker>
         ))}
-        {houses.map((house) => {
+        {filteredHouses.map((house) => {
           const color = house.is_full ? PIN_FULL : PIN_AVAILABLE
           return (
             <CircleMarker
@@ -111,6 +153,15 @@ function MapPage() {
         selected={selectedCampus}
         onSelect={setSelectedCampus}
       />
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        count={filteredHouses.length}
+        total={houses.length}
+      />
+
+      <SiteFooter overlay />
 
       {loading && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-white/60">

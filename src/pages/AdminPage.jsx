@@ -10,6 +10,8 @@ const EMPTY_FORM = {
   latitude: '',
   longitude: '',
   whatsapp_number: '',
+  gender_policy: 'mixed',
+  amenitiesText: '',
   ...Object.fromEntries(
     ROOM_TYPES.flatMap((t) => [
       [t.availField, 0],
@@ -98,6 +100,8 @@ function HouseForm({ house, onSaved, onCancel }) {
       latitude: house.latitude ?? '',
       longitude: house.longitude ?? '',
       whatsapp_number: house.whatsapp_number ?? '',
+      gender_policy: house.gender_policy ?? 'mixed',
+      amenitiesText: (house.amenities ?? []).join(', '),
     }
     for (const t of ROOM_TYPES) {
       initial[t.availField] = house[t.availField] ?? 0
@@ -143,6 +147,11 @@ function HouseForm({ house, onSaved, onCancel }) {
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
         whatsapp_number: form.whatsapp_number.trim() || null,
+        gender_policy: form.gender_policy,
+        amenities: form.amenitiesText
+          .split(',')
+          .map((a) => a.trim())
+          .filter(Boolean),
         photos: [...photos, ...uploadedUrls],
       }
       for (const t of ROOM_TYPES) {
@@ -250,6 +259,32 @@ function HouseForm({ house, onSaved, onCancel }) {
             className={inputCls}
           />
         </label>
+
+        <div className="mt-3 flex gap-3">
+          <label className="flex-1">
+            <span className="text-sm font-medium text-gray-700">Who can stay</span>
+            <select
+              value={form.gender_policy}
+              onChange={set('gender_policy')}
+              className={inputCls}
+            >
+              <option value="mixed">Mixed (boys &amp; girls)</option>
+              <option value="boys">Boys only</option>
+              <option value="girls">Girls only</option>
+            </select>
+          </label>
+          <label className="flex-1">
+            <span className="text-sm font-medium text-gray-700">
+              Amenities (comma-separated)
+            </span>
+            <input
+              value={form.amenitiesText}
+              onChange={set('amenitiesText')}
+              placeholder="WiFi, Solar, Borehole"
+              className={inputCls}
+            />
+          </label>
+        </div>
 
         <div className="mt-3">
           <span className="text-sm font-medium text-gray-700">Photos</span>

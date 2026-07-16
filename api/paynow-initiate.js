@@ -6,7 +6,7 @@ import paynowPkg from 'paynow'
 const { Paynow } = paynowPkg
 
 const ROOM_FEES = { single: 8, shared2: 4, shared3: 4, shared4: 4 }
-const PAYMENT_METHODS = ['ecocash', 'onemoney']
+const PAYMENT_METHODS = ['ecocash', 'onemoney', 'innbucks']
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   // 2) payment method
   if (!PAYMENT_METHODS.includes(payment_method)) {
     return res.status(400).json({
-      error: "payment_method must be 'ecocash' or 'onemoney'",
+      error: "payment_method must be 'ecocash', 'onemoney' or 'innbucks'",
     })
   }
 
@@ -126,9 +126,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Could not save payment reference' })
       }
 
+      // InnBucks has no phone prompt — Paynow returns an authorization code
+      // the student enters in the InnBucks app; pass it to the frontend
       return res.status(200).json({
         booking_id: booking.id,
         instructions: response.instructions,
+        innbucks: response.isInnbucks ? (response.innbucks_info?.[0] ?? null) : null,
       })
     } catch (paynowErr) {
       // Paynow threw after the booking was created — clean it up

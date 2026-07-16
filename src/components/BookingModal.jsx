@@ -4,6 +4,7 @@ import { ROOM_TYPES, availableRoomTypes, roomTypeById } from '../lib/roomTypes.j
 const PAYMENT_METHODS = [
   { id: 'ecocash', label: 'EcoCash' },
   { id: 'onemoney', label: 'OneMoney' },
+  { id: 'innbucks', label: 'InnBucks' },
 ]
 
 function generateReceiptCode() {
@@ -46,10 +47,13 @@ function BookingModal({ house, onClose }) {
   const [paymentMethod, setPaymentMethod] = useState(null)
   const [bookingId, setBookingId] = useState(null)
   const [receiptCode, setReceiptCode] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [innbucks, setInnbucks] = useState(null)
 
   const methodLabel =
     PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label ?? 'EcoCash'
-  const canPay = roomType && phone.trim() && email.trim() && paymentMethod
+  const canPay =
+    roomType && phone.trim() && email.trim() && paymentMethod && agreedToTerms
 
   const openTypes = availableRoomTypes(house)
   const roomOptions = openTypes.length > 0 ? openTypes : ROOM_TYPES
@@ -73,6 +77,7 @@ function BookingModal({ house, onClose }) {
       if (!res.ok) throw new Error(`initiate failed: ${res.status}`)
       const data = await res.json()
       if (data.receipt_code) setReceiptCode(data.receipt_code)
+      if (data.innbucks) setInnbucks(data.innbucks)
       setBookingId(data.booking_id)
     } catch (err) {
       console.error('Payment initiation failed:', err)
@@ -115,6 +120,7 @@ function BookingModal({ house, onClose }) {
   const tryAgain = () => {
     setBookingId(null)
     setReceiptCode('')
+    setInnbucks(null)
     setScreen('select')
   }
 
@@ -187,6 +193,27 @@ function BookingModal({ house, onClose }) {
               </div>
             </fieldset>
 
+            <label className="mt-4 flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 accent-green-600"
+              />
+              <span>
+                I agree to the{' '}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-green-700 underline"
+                >
+                  Terms of Service
+                </a>{' '}
+                and understand that all bookings are strictly non-refundable.
+              </span>
+            </label>
+
             <div className="mt-5 flex gap-3">
               <button
                 type="button"
@@ -207,20 +234,50 @@ function BookingModal({ house, onClose }) {
           </>
         )}
 
-        {screen === 'loading' && (
-          <div className="flex flex-col items-center py-8 text-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
-            <p className="mt-5 font-semibold text-gray-900">
-              Sending payment request to your phone...
-            </p>
-            <p className="mt-2 text-sm text-gray-600">
-              Check your {methodLabel} for a payment prompt
-            </p>
-            <p className="mt-4 text-sm font-medium text-red-600">
-              Do not close this screen
-            </p>
-          </div>
-        )}
+        {screen === 'loading' &&
+          (paymentMethod === 'innbucks' && innbucks?.authorizationcode ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <p className="font-semibold text-gray-900">
+                Open your InnBucks app and enter this code:
+              </p>
+              <div className="mt-4 rounded-lg bg-gray-100 px-6 py-3 font-mono text-3xl font-bold tracking-widest text-gray-900">
+                {innbucks.authorizationcode}
+              </div>
+              {innbucks.expires_at && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Code expires: {innbucks.expires_at}
+                </p>
+              )}
+              {innbucks.deep_link_url && (
+                <a
+                  href={innbucks.deep_link_url}
+                  className="mt-4 rounded-full border border-green-600 px-5 py-2 text-sm font-semibold text-green-700 hover:bg-green-50"
+                >
+                  Open InnBucks app
+                </a>
+              )}
+              <div className="mt-5 flex items-center gap-2 text-sm text-gray-600">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                Waiting for payment confirmation...
+              </div>
+              <p className="mt-4 text-sm font-medium text-red-600">
+                Do not close this screen
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-8 text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
+              <p className="mt-5 font-semibold text-gray-900">
+                Sending payment request to your phone...
+              </p>
+              <p className="mt-2 text-sm text-gray-600">
+                Check your {methodLabel} for a payment prompt
+              </p>
+              <p className="mt-4 text-sm font-medium text-red-600">
+                Do not close this screen
+              </p>
+            </div>
+          ))}
 
         {screen === 'success' && (
           <div className="flex flex-col items-center py-6 text-center">
