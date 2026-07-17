@@ -55,7 +55,11 @@ function matchesFilters(house, { query, gender, maxPrice }) {
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
-    if (!q.split(/\s+/).every((token) => hay.includes(token))) return false
+    // also match with punctuation stripped, so "wifi" finds "Wi-Fi"
+    const hayCompact = hay.replace(/[^a-z0-9]/g, '')
+    const matches = (token) =>
+      hay.includes(token) || hayCompact.includes(token.replace(/[^a-z0-9]/g, ''))
+    if (!q.split(/\s+/).every(matches)) return false
   }
 
   return true
