@@ -11,8 +11,8 @@ import HouseModal from '../components/HouseModal.jsx'
 const GWERU_CENTER = [-19.4955, 29.8412]
 
 const CAMPUSES = [
-  { id: 'msu', name: 'MSU Main Campus', position: [-19.482863, 29.839538], color: 'blue' },
-  { id: 'telone', name: 'Telone Campus', position: [-19.508269, 29.836481], color: 'violet' },
+  { id: 'msu', name: 'MSU Main Campus', position: [-19.508269, 29.836481], color: 'blue' },
+  { id: 'telone', name: 'Telone Campus', position: [-19.482863, 29.839538], color: 'violet' },
 ]
 
 const PIN_AVAILABLE = '#16a34a'

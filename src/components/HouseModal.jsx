@@ -35,6 +35,7 @@ function RoomCard({ title, available, price }) {
 function HouseModal({ house, campusCoords, onClose }) {
   const [photoIndex, setPhotoIndex] = useState(0)
   const [showBooking, setShowBooking] = useState(false)
+  const [lightbox, setLightbox] = useState(false)
 
   const photos = house.photos ?? []
   const distanceKm = haversineKm(
@@ -84,8 +85,12 @@ function HouseModal({ house, campusCoords, onClose }) {
                 <img
                   src={photos[photoIndex]}
                   alt={`${house.name} photo ${photoIndex + 1} of ${photos.length}`}
-                  className="h-full w-full object-cover"
+                  onClick={() => setLightbox(true)}
+                  className="h-full w-full cursor-zoom-in object-cover"
                 />
+                <div className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+                  Tap photo to enlarge
+                </div>
                 {photos.length > 1 && (
                   <>
                     <button
@@ -194,6 +199,59 @@ function HouseModal({ house, campusCoords, onClose }) {
           </div>
         </div>
       </div>
+
+      {lightbox && photos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[1250] flex items-center justify-center bg-black/90"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(false)}
+            aria-label="Close photo"
+            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25"
+          >
+            ✕
+          </button>
+
+          <img
+            src={photos[photoIndex]}
+            alt={`${house.name} photo ${photoIndex + 1} of ${photos.length}`}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[92vw] object-contain"
+          />
+
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Previous photo"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)
+                }}
+                className="absolute top-1/2 left-3 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label="Next photo"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoIndex((i) => (i + 1) % photos.length)
+                }}
+                className="absolute top-1/2 right-3 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-sm text-white">
+                {photoIndex + 1} / {photos.length}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {showBooking && (
         <BookingModal house={house} onClose={() => setShowBooking(false)} />
