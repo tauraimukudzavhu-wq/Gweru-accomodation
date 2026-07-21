@@ -8,11 +8,11 @@ import FilterBar from '../components/FilterBar.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import HouseModal from '../components/HouseModal.jsx'
 
-const GWERU_CENTER = [-19.45, 29.8167]
+const GWERU_CENTER = [-19.4955, 29.8412]
 
 const CAMPUSES = [
-  { id: 'msu', name: 'MSU Main Campus', position: [-19.448, 29.82], color: 'blue' },
-  { id: 'telone', name: 'Telone Campus', position: [-19.432, 29.805], color: 'violet' },
+  { id: 'msu', name: 'MSU Main Campus', position: [-19.482863, 29.839538], color: 'blue' },
+  { id: 'telone', name: 'Telone Campus', position: [-19.508269, 29.836481], color: 'violet' },
 ]
 
 const PIN_AVAILABLE = '#16a34a'
