@@ -49,6 +49,7 @@ function BookingModal({ house, onClose }) {
   const [receiptCode, setReceiptCode] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [innbucks, setInnbucks] = useState(null)
+  const [failReason, setFailReason] = useState(null)
 
   const methodLabel =
     PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label ?? 'EcoCash'
@@ -74,13 +75,20 @@ function BookingModal({ house, onClose }) {
           payment_method: paymentMethod,
         }),
       })
-      if (!res.ok) throw new Error(`initiate failed: ${res.status}`)
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // surface Paynow's specific reason (e.g. invalid phone) so the
+        // student can fix it, instead of the generic failure message
+        setFailReason(data.error || null)
+        setScreen('failed')
+        return
+      }
       if (data.receipt_code) setReceiptCode(data.receipt_code)
       if (data.innbucks) setInnbucks(data.innbucks)
       setBookingId(data.booking_id)
     } catch (err) {
       console.error('Payment initiation failed:', err)
+      setFailReason(null)
       setScreen('failed')
     }
   }
@@ -121,6 +129,7 @@ function BookingModal({ house, onClose }) {
     setBookingId(null)
     setReceiptCode('')
     setInnbucks(null)
+    setFailReason(null)
     setScreen('select')
   }
 
@@ -326,7 +335,9 @@ function BookingModal({ house, onClose }) {
               Payment was not completed
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Your transaction was cancelled or failed. No money was taken.
+              {failReason
+                ? `${failReason}. No money was taken.`
+                : 'Your transaction was cancelled or failed. No money was taken.'}
             </p>
             <div className="mt-5 flex w-full gap-3">
               <button
