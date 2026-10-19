@@ -128,6 +128,17 @@ Deployed on **Vercel**. Import the repo, set all the environment variables above
 
 **Paynow note:** a Paynow integration is single-currency — the integration ID determines whether charges are in USD or ZWG. Set `PAYNOW_RESULT_URL` to your deployed domain so Paynow's payment webhook can reach the app.
 
+## Team
+
+MyBase is built and maintained by:
+
+| | Creator | GitHub |
+| --- | --- | --- |
+| <img src="https://github.com/tauraimukudzavhu-wq.png" width="48" alt="" /> | **Taurai Jiri** | [@tauraimukudzavhu-wq](https://github.com/tauraimukudzavhu-wq) |
+| <img src="https://github.com/stanlic-cyber.png" width="48" alt="" /> | **stanlic-cyber** | [@stanlic-cyber](https://github.com/stanlic-cyber) |
+
+Contact: [mybasezw@gmail.com](mailto:mybasezw@gmail.com)
+
 ## License
 
 Private project. All rights reserved.
