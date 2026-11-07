@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   whatsapp_number: '',
   gender_policy: 'mixed',
   amenitiesText: '',
+  is_verified: false,
   ...Object.fromEntries(
     ROOM_TYPES.flatMap((t) => [
       [t.availField, 0],
@@ -102,6 +103,7 @@ function HouseForm({ house, onSaved, onCancel }) {
       whatsapp_number: house.whatsapp_number ?? '',
       gender_policy: house.gender_policy ?? 'mixed',
       amenitiesText: (house.amenities ?? []).join(', '),
+      is_verified: house.is_verified ?? false,
     }
     for (const t of ROOM_TYPES) {
       initial[t.availField] = house[t.availField] ?? 0
@@ -148,6 +150,7 @@ function HouseForm({ house, onSaved, onCancel }) {
         longitude: Number(form.longitude),
         whatsapp_number: form.whatsapp_number.trim() || null,
         gender_policy: form.gender_policy,
+        is_verified: form.is_verified,
         amenities: form.amenitiesText
           .split(',')
           .map((a) => a.trim())
@@ -285,6 +288,19 @@ function HouseForm({ house, onSaved, onCancel }) {
             />
           </label>
         </div>
+
+        <label className="mt-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3">
+          <input
+            type="checkbox"
+            checked={form.is_verified}
+            onChange={(e) => setForm((f) => ({ ...f, is_verified: e.target.checked }))}
+            className="mt-0.5 accent-sky-600"
+          />
+          <span className="text-sm text-gray-700">
+            <span className="font-medium text-sky-800">Verified</span>: I have checked
+            this house in person and the photos match it.
+          </span>
+        </label>
 
         <div className="mt-3">
           <span className="text-sm font-medium text-gray-700">Photos</span>
@@ -443,7 +459,14 @@ function HousesTab() {
             )}
             {houses.map((house) => (
               <tr key={house.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-4 py-3 font-medium text-gray-900">{house.name}</td>
+                <td className="px-4 py-3 font-medium text-gray-900">
+                  {house.name}
+                  {house.is_verified && (
+                    <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
+                      ✓ Verified
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-700">
                   {house.single_rooms_available ?? 0} · ${house.single_room_price ?? 0}/mo
                 </td>

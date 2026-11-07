@@ -50,6 +50,7 @@ function matchesFilters(house, { query, gender, maxPrice }) {
       house.name,
       house.description,
       GENDER_SYNONYMS[policy] ?? policy,
+      house.is_verified ? 'verified checked' : '',
       ...(house.amenities ?? []),
     ]
       .filter(Boolean)

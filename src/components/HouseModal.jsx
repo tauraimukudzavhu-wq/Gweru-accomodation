@@ -13,6 +13,24 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
+function VerifiedBadge() {
+  return (
+    <span
+      title="Checked in person by the MyBase team"
+      className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800"
+    >
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+        <path
+          fillRule="evenodd"
+          d="M10 1.5l2.2 1.6 2.7-.1.8 2.6 2.2 1.6-.9 2.6.9 2.6-2.2 1.6-.8 2.6-2.7-.1L10 18.5l-2.2-1.6-2.7.1-.8-2.6-2.2-1.6.9-2.6-.9-2.6 2.2-1.6.8-2.6 2.7.1L10 1.5zm3.7 6.2a.75.75 0 00-1.1-1l-3.6 3.9-1.6-1.6a.75.75 0 10-1.1 1.1l2.2 2.1a.75.75 0 001.1 0l4.1-4.5z"
+          clipRule="evenodd"
+        />
+      </svg>
+      Verified
+    </span>
+  )
+}
+
 const GENDER_BADGES = {
   boys: { label: 'Boys only', cls: 'bg-blue-100 text-blue-800' },
   girls: { label: 'Girls only', cls: 'bg-pink-100 text-pink-800' },
@@ -126,6 +144,7 @@ function HouseModal({ house, campusCoords, onClose }) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <h2 className="text-2xl font-bold text-gray-900">{house.name}</h2>
+            {house.is_verified && <VerifiedBadge />}
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
               {distanceKm.toFixed(1)} km from campus
             </span>
@@ -138,6 +157,12 @@ function HouseModal({ house, campusCoords, onClose }) {
               {GENDER_BADGES[house.gender_policy ?? 'mixed']?.label ?? 'Mixed'}
             </span>
           </div>
+
+          {house.is_verified && (
+            <p className="mt-2 text-xs text-sky-800">
+              Checked in person by the MyBase team. The photos match the real house.
+            </p>
+          )}
 
           {house.description && (
             <p className="mt-2 text-sm text-gray-600">{house.description}</p>
