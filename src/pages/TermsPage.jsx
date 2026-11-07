@@ -28,7 +28,7 @@ function TermsPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Terms of Service &amp; Liability Disclaimer
           </h1>
-          <p className="mt-1 text-sm text-gray-500">Last Updated: July 16, 2026</p>
+          <p className="mt-1 text-sm text-gray-500">Last Updated: November 7, 2026</p>
 
           <p className="mt-4 text-gray-700">
             Welcome to MyBase Housing (accessible at{' '}
@@ -65,8 +65,14 @@ function TermsPage() {
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                We do not own, manage, inspect, or control any of the properties listed
-                on this platform.
+                We do not own, manage, or control any of the properties listed on this
+                platform.
+              </li>
+              <li>
+                Houses marked <strong>Verified</strong> have been visited in person by
+                our team to confirm that the listing photos match the property. This
+                is not a guarantee of the property&apos;s condition, safety, or
+                suitability.
               </li>
               <li>
                 Agreements, interactions, and tenancies are strictly between the
@@ -104,8 +110,9 @@ function TermsPage() {
               <li>
                 <strong>Property Conditions:</strong> Any discrepancy between the
                 online listing (photos, descriptions, amenities) and the physical state
-                of the property. We highly recommend viewing the property in person
-                before moving in.
+                of the property, including Verified listings, since a property may
+                change after our visit. We highly recommend viewing the property in
+                person before moving in.
               </li>
               <li>
                 <strong>Landlord/Tenant Disputes:</strong> Any disagreements, financial
