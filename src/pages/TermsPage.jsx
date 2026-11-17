@@ -28,7 +28,7 @@ function TermsPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Terms of Service &amp; Liability Disclaimer
           </h1>
-          <p className="mt-1 text-sm text-gray-500">Last Updated: November 7, 2026</p>
+          <p className="mt-1 text-sm text-gray-500">Last Updated: November 17, 2026</p>
 
           <p className="mt-4 text-gray-700">
             Welcome to MyBase Housing (accessible at{' '}
@@ -97,6 +97,12 @@ function TermsPage() {
                 of mind, academic schedule changes, university admission updates, or
                 cancellation of tenancy by either party. Please ensure you are fully
                 committed to the property before finalizing your booking.
+              </li>
+              <li>
+                <strong>Advance Bookings:</strong> Bookings made for a future semester
+                are also final and non-refundable, including if the semester start
+                date changes. The semester you are booking for is shown before you pay
+                and on your receipt.
               </li>
             </ul>
           </Section>

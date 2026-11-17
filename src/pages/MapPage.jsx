@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaf
 import L from 'leaflet'
 import { supabase } from '../lib/supabase.js'
 import { ROOM_TYPES } from '../lib/roomTypes.js'
+import { fetchSeason, isNextSemesterOpen } from '../lib/season.js'
 import CampusToggle from '../components/CampusToggle.jsx'
 import FilterBar from '../components/FilterBar.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
@@ -17,6 +18,9 @@ const CAMPUSES = [
 
 const PIN_AVAILABLE = '#16a34a'
 const PIN_FULL = '#dc2626'
+const PIN_NEXT_SEMESTER = '#2563eb'
+
+const EMPTY_FILTERS = { query: '', gender: 'any', maxPrice: '', nextSemester: false }
 
 // extra words each gender policy should match when students type a search
 const GENDER_SYNONYMS = {
@@ -35,9 +39,12 @@ const campusIcon = (color) =>
     shadowSize: [41, 41],
   })
 
-function matchesFilters(house, { query, gender, maxPrice }) {
+function matchesFilters(house, { query, gender, maxPrice, nextSemester }, season) {
   const policy = house.gender_policy ?? 'mixed'
   if (gender !== 'any' && policy !== gender) return false
+
+  const nextOpen = isNextSemesterOpen(house, season)
+  if (nextSemester && !nextOpen) return false
 
   if (maxPrice) {
     const prices = ROOM_TYPES.map((t) => house[t.priceField] ?? 0).filter((p) => p > 0)
@@ -51,6 +58,7 @@ function matchesFilters(house, { query, gender, maxPrice }) {
       house.description,
       GENDER_SYNONYMS[policy] ?? policy,
       house.is_verified ? 'verified checked' : '',
+      nextOpen ? `next semester booking ${season.label}` : '',
       ...(house.amenities ?? []),
     ]
       .filter(Boolean)
@@ -71,7 +79,18 @@ function MapPage() {
   const [houses, setHouses] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedHouseId, setSelectedHouseId] = useState(null)
-  const [filters, setFilters] = useState({ query: '', gender: 'any', maxPrice: '' })
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [season, setSeason] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSeason().then((s) => {
+      if (!cancelled) setSeason(s)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -118,8 +137,8 @@ function MapPage() {
   const selectedHouse = houses.find((h) => h.id === selectedHouseId)
 
   const filteredHouses = useMemo(
-    () => houses.filter((h) => matchesFilters(h, filters)),
-    [houses, filters],
+    () => houses.filter((h) => matchesFilters(h, filters, season)),
+    [houses, filters, season],
   )
 
   return (
@@ -140,7 +159,12 @@ function MapPage() {
           </Marker>
         ))}
         {filteredHouses.map((house) => {
-          const color = house.is_full ? PIN_FULL : PIN_AVAILABLE
+          // green = rooms now, blue = full now but booking for next semester
+          const color = !house.is_full
+            ? PIN_AVAILABLE
+            : isNextSemesterOpen(house, season)
+              ? PIN_NEXT_SEMESTER
+              : PIN_FULL
           return (
             <CircleMarker
               key={house.id}
@@ -162,8 +186,10 @@ function MapPage() {
       <FilterBar
         filters={filters}
         onChange={setFilters}
+        onClear={() => setFilters(EMPTY_FILTERS)}
         count={filteredHouses.length}
         total={houses.length}
+        season={season}
       />
 
       <SiteFooter overlay />
@@ -179,6 +205,7 @@ function MapPage() {
           key={selectedHouse.id}
           house={selectedHouse}
           campusCoords={{ lat: campus.position[0], lng: campus.position[1] }}
+          season={season}
           onClose={() => setSelectedHouseId(null)}
         />
       )}

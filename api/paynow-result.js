@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     if (status === 'paid') {
       const { data: booking } = await supabase
         .from('bookings')
-        .select('house_id, room_type')
+        .select('house_id, room_type, semester')
         .eq('id', bookingId)
         .single()
       if (!booking) {
@@ -96,7 +96,10 @@ export default async function handler(req, res) {
             .is('receipt_code', null)
         }
 
-        const field = AVAIL_FIELDS[booking.room_type]
+        // advance bookings count down the next-semester rooms instead
+        const field = booking.semester
+          ? 'next_semester_rooms'
+          : AVAIL_FIELDS[booking.room_type]
         if (field) {
           const { data: house } = await supabase
             .from('houses')

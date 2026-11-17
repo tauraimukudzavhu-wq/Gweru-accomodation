@@ -13,6 +13,8 @@ const EMPTY_FORM = {
   gender_policy: 'mixed',
   amenitiesText: '',
   is_verified: false,
+  next_semester_open: false,
+  next_semester_rooms: 0,
   ...Object.fromEntries(
     ROOM_TYPES.flatMap((t) => [
       [t.availField, 0],
@@ -104,6 +106,8 @@ function HouseForm({ house, onSaved, onCancel }) {
       gender_policy: house.gender_policy ?? 'mixed',
       amenitiesText: (house.amenities ?? []).join(', '),
       is_verified: house.is_verified ?? false,
+      next_semester_open: house.next_semester_open ?? false,
+      next_semester_rooms: house.next_semester_rooms ?? 0,
     }
     for (const t of ROOM_TYPES) {
       initial[t.availField] = house[t.availField] ?? 0
@@ -151,6 +155,8 @@ function HouseForm({ house, onSaved, onCancel }) {
         whatsapp_number: form.whatsapp_number.trim() || null,
         gender_policy: form.gender_policy,
         is_verified: form.is_verified,
+        next_semester_open: form.next_semester_open,
+        next_semester_rooms: Number(form.next_semester_rooms) || 0,
         amenities: form.amenitiesText
           .split(',')
           .map((a) => a.trim())
@@ -302,6 +308,42 @@ function HouseForm({ house, onSaved, onCancel }) {
           </span>
         </label>
 
+        <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={form.next_semester_open}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, next_semester_open: e.target.checked }))
+              }
+              className="mt-0.5 accent-blue-600"
+            />
+            <span className="text-sm text-gray-700">
+              <span className="font-medium text-blue-800">Open for next semester</span>:
+              students can reserve rooms here for the next semester (shown while the
+              booking season is switched on).
+            </span>
+          </label>
+          {form.next_semester_open && (
+            <label className="mt-2 block">
+              <span className="text-sm font-medium text-gray-700">
+                Rooms open for next semester
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={form.next_semester_rooms}
+                onChange={set('next_semester_rooms')}
+                className={inputCls}
+              />
+              <span className="mt-1 block text-xs text-gray-500">
+                Counts down by one with each paid reservation. Room prices are the
+                same as above.
+              </span>
+            </label>
+          )}
+        </div>
+
         <div className="mt-3">
           <span className="text-sm font-medium text-gray-700">Photos</span>
 
@@ -381,6 +423,159 @@ function HouseForm({ house, onSaved, onCancel }) {
   )
 }
 
+function SeasonSettings() {
+  const [form, setForm] = useState(null)
+  const [saved, setSaved] = useState(null)
+  const [message, setMessage] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .from('site_settings')
+      .select('next_season_open, next_season_label, next_season_move_in')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          setMessage({ type: 'error', text: `Could not load the season: ${error.message}` })
+          return
+        }
+        const initial = {
+          open: data?.next_season_open ?? false,
+          label: data?.next_season_label ?? '',
+          moveIn: data?.next_season_move_in ?? '',
+        }
+        setForm(initial)
+        setSaved(initial)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!form) {
+    return message ? (
+      <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message.text}</p>
+    ) : null
+  }
+
+  const save = async (e) => {
+    e.preventDefault()
+    setMessage(null)
+    if (form.open && !form.label.trim()) {
+      setMessage({ type: 'error', text: 'Enter the semester name before switching it on.' })
+      return
+    }
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('site_settings')
+      .update({
+        next_season_open: form.open,
+        next_season_label: form.label.trim() || null,
+        next_season_move_in: form.moveIn || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', 1)
+      .select('id')
+    setSaving(false)
+    if (error || !data?.length) {
+      setMessage({ type: 'error', text: error?.message ?? 'Save failed: settings row missing.' })
+      return
+    }
+    setSaved(form)
+    setMessage({
+      type: 'ok',
+      text: form.open
+        ? 'Saved. Students now see the next-semester banner.'
+        : 'Saved. Next-semester bookings are switched off.',
+    })
+  }
+
+  const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  const inputCls =
+    'mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-blue-600 focus:outline-none'
+
+  return (
+    <form
+      onSubmit={save}
+      className={`rounded-xl border p-4 ${
+        saved.open ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="font-bold text-gray-900">📅 Next Semester Bookings</h3>
+          <p className="text-sm text-gray-600">
+            {saved.open
+              ? `ON: students see "Now booking for ${saved.label}".`
+              : 'OFF: switch on when the semester ends.'}
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-800">
+          <input
+            type="checkbox"
+            checked={form.open}
+            onChange={(e) => setForm((f) => ({ ...f, open: e.target.checked }))}
+            className="h-4 w-4 accent-blue-600"
+          />
+          Taking bookings for next semester
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-3">
+        <label className="min-w-[12rem] flex-1">
+          <span className="text-sm font-medium text-gray-700">Semester name</span>
+          <input
+            value={form.label}
+            onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+            placeholder="Semester 1, 2027"
+            maxLength={40}
+            className={inputCls}
+          />
+        </label>
+        <label className="min-w-[10rem] flex-1">
+          <span className="text-sm font-medium text-gray-700">
+            Move-in date <span className="font-normal text-gray-500">(optional)</span>
+          </span>
+          <input
+            type="date"
+            value={form.moveIn}
+            onChange={(e) => setForm((f) => ({ ...f, moveIn: e.target.value }))}
+            className={inputCls}
+          />
+          <span className="mt-1 block text-xs text-gray-500">
+            Leave blank until the university announces it. Students will see
+            &quot;Move in at the start of the semester&quot;.
+          </span>
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving || !dirty}
+          className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
+        >
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+        {message && (
+          <p
+            className={`text-sm ${message.type === 'error' ? 'text-red-700' : 'text-green-700'}`}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
+      <p className="mt-2 text-xs text-gray-500">
+        Then tick &quot;Open for next semester&quot; on each house that is taking
+        reservations (Edit → under &quot;Verified&quot;).
+      </p>
+    </form>
+  )
+}
+
 function HousesTab() {
   const [houses, setHouses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -423,6 +618,10 @@ function HousesTab() {
 
   return (
     <div className="p-4 sm:p-6">
+      <div className="mb-5">
+        <SeasonSettings />
+      </div>
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900">Houses</h2>
         <button
@@ -488,6 +687,11 @@ function HousesTab() {
                   >
                     {house.is_full ? 'Full' : 'Available'}
                   </span>
+                  {house.next_semester_open && (
+                    <span className="mt-1 block w-fit rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-blue-800">
+                      Next sem: {house.next_semester_rooms ?? 0} rooms
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
@@ -569,6 +773,7 @@ function BookingsTab() {
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">House</th>
               <th className="px-4 py-3 font-medium">Room Type</th>
+              <th className="px-4 py-3 font-medium">Semester</th>
               <th className="px-4 py-3 font-medium">Amount</th>
               <th className="px-4 py-3 font-medium">Payment Method</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -579,7 +784,7 @@ function BookingsTab() {
           <tbody>
             {bookings.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                   No bookings yet.
                 </td>
               </tr>
@@ -590,6 +795,15 @@ function BookingsTab() {
                 <td className="px-4 py-3 text-gray-700">{b.student_email}</td>
                 <td className="px-4 py-3 text-gray-700">{b.houses?.name ?? '—'}</td>
                 <td className="px-4 py-3 text-gray-700 capitalize">{b.room_type}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {b.semester ? (
+                    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800">
+                      {b.semester}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Current</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-700">${b.amount}</td>
                 <td className="px-4 py-3 text-gray-700 capitalize">
                   {b.payment_method ?? '—'}

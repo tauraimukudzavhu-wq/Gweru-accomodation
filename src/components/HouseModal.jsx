@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import BookingModal from './BookingModal.jsx'
 import { availableRoomTypes } from '../lib/roomTypes.js'
+import { formatMoveIn, isNextSemesterOpen, offeredRoomTypes } from '../lib/season.js'
 
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371
@@ -50,10 +51,37 @@ function RoomCard({ title, available, price }) {
   )
 }
 
-function HouseModal({ house, campusCoords, onClose }) {
+function NextSemesterPanel({ house, season }) {
+  const moveIn = formatMoveIn(season.moveIn)
+  const rooms = house.next_semester_rooms ?? 0
+  return (
+    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+      <p className="font-semibold text-blue-900">📅 Taking bookings for {season.label}</p>
+      <p className="mt-0.5 text-sm text-blue-800">
+        {moveIn ? `Move in ${moveIn}` : 'Move in at the start of the semester'} ·{' '}
+        {rooms} {rooms === 1 ? 'room' : 'rooms'} open
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {offeredRoomTypes(house).map((t) => (
+          <span
+            key={t.id}
+            className="rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-900 shadow-sm"
+          >
+            {t.shortLabel} · ${house[t.priceField] ?? 0}/mo
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function HouseModal({ house, campusCoords, season, onClose }) {
   const [photoIndex, setPhotoIndex] = useState(0)
   const [showBooking, setShowBooking] = useState(false)
   const [lightbox, setLightbox] = useState(false)
+
+  const nextOpen = isNextSemesterOpen(house, season)
+  const canBookNow = !house.is_full
 
   const photos = house.photos ?? []
   const distanceKm = haversineKm(
@@ -181,9 +209,11 @@ function HouseModal({ house, campusCoords, onClose }) {
             </div>
           )}
 
+          {nextOpen && <NextSemesterPanel house={house} season={season} />}
+
           {house.is_full ? (
             <div className="mt-4 rounded-xl bg-red-600 px-4 py-3 text-center font-semibold text-white">
-              No Rooms Available
+              {nextOpen ? 'No Rooms Available This Semester' : 'No Rooms Available'}
             </div>
           ) : availableRoomTypes(house).length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -212,7 +242,7 @@ function HouseModal({ house, campusCoords, onClose }) {
             >
               Ask Availability
             </button>
-            {!house.is_full && (
+            {canBookNow ? (
               <button
                 type="button"
                 onClick={() => setShowBooking(true)}
@@ -220,6 +250,16 @@ function HouseModal({ house, campusCoords, onClose }) {
               >
                 Book Room
               </button>
+            ) : (
+              nextOpen && (
+                <button
+                  type="button"
+                  onClick={() => setShowBooking(true)}
+                  className="flex-1 rounded-full bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+                >
+                  Reserve for Next Semester
+                </button>
+              )
             )}
           </div>
         </div>
@@ -279,7 +319,12 @@ function HouseModal({ house, campusCoords, onClose }) {
       )}
 
       {showBooking && (
-        <BookingModal house={house} onClose={() => setShowBooking(false)} />
+        <BookingModal
+          house={house}
+          canBookNow={canBookNow}
+          nextSeason={nextOpen ? season : null}
+          onClose={() => setShowBooking(false)}
+        />
       )}
     </>
   )

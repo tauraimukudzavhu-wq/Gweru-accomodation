@@ -97,8 +97,11 @@ export default async function handler(req, res) {
             .is('receipt_code', null)
         }
 
-        // decrement the booked room type's availability on the house
-        const field = AVAIL_FIELDS[booking.room_type]
+        // decrement the booked room type's availability on the house, or the
+        // next-semester room count for an advance booking
+        const field = booking.semester
+          ? 'next_semester_rooms'
+          : AVAIL_FIELDS[booking.room_type]
         if (field) {
           const { data: house } = await supabase
             .from('houses')

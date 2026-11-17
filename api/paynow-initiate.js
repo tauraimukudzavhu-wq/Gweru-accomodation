@@ -21,7 +21,9 @@ export default async function handler(req, res) {
     student_phone,
     student_email,
     payment_method,
+    semester,
   } = req.body ?? {}
+  const isNextSemester = semester === 'next'
 
   // 1) amount must be exactly the fee for the chosen room type
   const expectedFee = ROOM_FEES[room_type]
@@ -58,13 +60,31 @@ export default async function handler(req, res) {
   try {
     const { data: house, error: houseErr } = await supabase
       .from('houses')
-      .select('name, is_full')
+      .select('name, is_full, next_semester_open, next_semester_rooms')
       .eq('id', house_id)
       .single()
     if (houseErr || !house) {
       return res.status(404).json({ error: 'House not found' })
     }
-    if (house.is_full) {
+
+    // the semester label comes from the database, never from the browser
+    let semesterLabel = null
+    if (isNextSemester) {
+      const { data: settings } = await supabase
+        .from('site_settings')
+        .select('next_season_open, next_season_label')
+        .eq('id', 1)
+        .maybeSingle()
+      semesterLabel = settings?.next_season_open ? settings.next_season_label?.trim() : null
+      if (!semesterLabel) {
+        return res.status(409).json({ error: 'Next-semester bookings are closed' })
+      }
+      if (!house.next_semester_open || (house.next_semester_rooms ?? 0) <= 0) {
+        return res.status(409).json({
+          error: 'This house is not taking next-semester bookings',
+        })
+      }
+    } else if (house.is_full) {
       return res.status(409).json({ error: 'This house is fully booked' })
     }
 
@@ -79,6 +99,7 @@ export default async function handler(req, res) {
         student_email: student_email.trim(),
         payment_method,
         payment_status: 'pending',
+        semester: semesterLabel,
       })
       .select('id')
       .single()
@@ -98,7 +119,10 @@ export default async function handler(req, res) {
 
       // 6) payment referencing the booking
       const payment = paynow.createPayment(`booking-${booking.id}`, student_email.trim())
-      payment.add(`Room Booking - ${house.name} (${room_type})`, expectedFee)
+      payment.add(
+        `Room Booking - ${house.name} (${room_type})${semesterLabel ? ` - ${semesterLabel}` : ''}`,
+        expectedFee,
+      )
 
       // 7) send the mobile-money prompt
       const response = await paynow.sendMobile(

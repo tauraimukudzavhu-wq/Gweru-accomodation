@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ROOM_TYPES, availableRoomTypes, roomTypeById } from '../lib/roomTypes.js'
+import { formatMoveIn, offeredRoomTypes } from '../lib/season.js'
 
 const PAYMENT_METHODS = [
   { id: 'ecocash', label: 'EcoCash' },
@@ -39,8 +40,11 @@ function RoomTile({ title, fee, price, selected, onSelect }) {
   )
 }
 
-function BookingModal({ house, onClose }) {
+// canBookNow: the house has rooms this semester.
+// nextSeason: { label, moveIn } when the house takes next-semester bookings.
+function BookingModal({ house, canBookNow = true, nextSeason = null, onClose }) {
   const [screen, setScreen] = useState('select')
+  const [semester, setSemester] = useState(canBookNow ? 'current' : 'next')
   const [roomType, setRoomType] = useState(null)
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -56,9 +60,22 @@ function BookingModal({ house, onClose }) {
   const canPay =
     roomType && phone.trim() && email.trim() && paymentMethod && agreedToTerms
 
+  const isNext = semester === 'next' && Boolean(nextSeason)
+  const moveIn = isNext ? formatMoveIn(nextSeason.moveIn) : null
+
   const openTypes = availableRoomTypes(house)
-  const roomOptions = openTypes.length > 0 ? openTypes : ROOM_TYPES
+  const roomOptions = isNext
+    ? offeredRoomTypes(house)
+    : openTypes.length > 0
+      ? openTypes
+      : ROOM_TYPES
   const selectedType = roomTypeById(roomType)
+
+  const chooseSemester = (value) => {
+    setSemester(value)
+    setRoomType(null)
+    setAgreedToTerms(false)
+  }
 
   const confirmAndPay = async () => {
     setScreen('loading')
@@ -73,6 +90,7 @@ function BookingModal({ house, onClose }) {
           student_phone: phone.trim(),
           student_email: email.trim(),
           payment_method: paymentMethod,
+          ...(isNext ? { semester: 'next' } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -139,8 +157,45 @@ function BookingModal({ house, onClose }) {
         {screen === 'select' && (
           <>
             <h2 className="text-xl font-bold text-gray-900">
-              Book a Room at {house.name}
+              {isNext ? 'Reserve' : 'Book'} a Room at {house.name}
             </h2>
+
+            {canBookNow && nextSeason && (
+              <div
+                role="radiogroup"
+                aria-label="Which semester?"
+                className="mt-4 grid grid-cols-2 gap-1 rounded-full bg-gray-100 p-1"
+              >
+                {[
+                  { value: 'current', label: 'This semester' },
+                  { value: 'next', label: nextSeason.label },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={semester === opt.value}
+                    onClick={() => chooseSemester(opt.value)}
+                    className={`truncate rounded-full px-3 py-1.5 text-sm font-medium ${
+                      semester === opt.value
+                        ? opt.value === 'next'
+                          ? 'bg-blue-600 text-white shadow'
+                          : 'bg-green-600 text-white shadow'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isNext && (
+              <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                📅 This booking is for <strong>{nextSeason.label}</strong>
+                {moveIn ? `. Move in ${moveIn}.` : '. Move in at the start of the semester.'}
+              </p>
+            )}
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               {roomOptions.map((t) => (
@@ -219,7 +274,11 @@ function BookingModal({ house, onClose }) {
                 >
                   Terms of Service
                 </a>{' '}
-                and understand that all bookings are strictly non-refundable.
+                {isNext
+                  ? `and understand that this booking is for ${nextSeason.label}${
+                      moveIn ? ` (move in ${moveIn})` : ''
+                    } and is strictly non-refundable.`
+                  : 'and understand that all bookings are strictly non-refundable.'}
               </span>
             </label>
 
@@ -308,6 +367,15 @@ function BookingModal({ house, onClose }) {
                 <dt className="text-gray-500">Room type</dt>
                 <dd className="font-medium">{selectedType?.label ?? roomType}</dd>
               </div>
+              {isNext && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Semester</dt>
+                  <dd className="font-medium">
+                    {nextSeason.label}
+                    {moveIn ? ` · move in ${moveIn}` : ''}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-gray-500">Amount paid</dt>
                 <dd className="font-medium">${selectedType?.fee}</dd>
